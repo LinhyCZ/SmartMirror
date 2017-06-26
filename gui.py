@@ -32,9 +32,14 @@ temp_val = StringVar()
 act_temp_val = StringVar()
 act_hum_val = StringVar()
 
+date_label = ""
+
 #Promenne pro globalni ulozeni popisku stavu pocasi
 status_label = ""
 status_frame = ""
+
+right_forecast_frame = ""
+left_forecast_frame = ""
 
 #Dvojtecka, ktera se nachazi v case
 colon = StringVar()
@@ -50,6 +55,7 @@ def set_fullscreen():
         global top
         top.attributes("-fullscreen", True)
         top.configure(background="black")
+
 
 
 #Nastaveni labelu, ktery obsahuje pozdravy - Dobre rano, dopoledne, ...
@@ -75,7 +81,7 @@ def show_header():
 
 #Zobrazeni prostredni casti hlavicky - casu a data
 def show_center_datetime(parent):
-		global hour_val, minute_val, colon, date_val, screen_width
+		global hour_val, minute_val, colon, date_val, screen_width, date_label, right_forecast_frame, left_forecast_frame
 
 		#Cely time a date frame, zabira 1/3 sirky obrazovky a 200px vysky
 		center_time_frame = Frame(parent, bg="black")
@@ -87,10 +93,8 @@ def show_center_datetime(parent):
 		#Time frame, pouze pro hodiny bez data, sirku prizpusobuje obsahu, horizontalne se centruje, obsahuje veskere time labely
 		time_frame = Frame(main_time_frame, bg="black")		
 
-		#Time labely a date label, carka je oddelena kvuli blikani
+		#Time labely a date label
 		hour_label = Label(time_frame, textvariable=hour_val, bg="black", fg="white", font=("Roboto thin", 72))
-		colon_frame = Frame(time_frame, width=20, height=133, bg="black")
-		colon_label = Label(colon_frame, textvariable=colon, bg="black", fg="white", font=("Roboto thin", 72))
 		minute_label = Label(time_frame, textvariable=minute_val, bg="black", fg="white", font=("Roboto thin", 72))
 		date_label = Label(center_time_frame, textvariable=date_val, bg="black", fg="white", font=("Roboto thin", 25))
 
@@ -98,10 +102,28 @@ def show_center_datetime(parent):
 		main_time_frame.place(x=0, height=150, width=screen_width/3, y=0)
 		time_frame.place(relx=0.5, y=66, anchor=CENTER)
 		hour_label.grid(column=0, row=0, sticky=W)
-		colon_frame.grid(column=1, row=0, sticky=W)
 		minute_label.grid(column=2, row=0, sticky=W)
-		colon_label.place(x=0, y=0)
 		date_label.place(x=0, height=50, width=screen_width/3, y=150)
+
+		#Vytvori zakladni frame pro pravou cast hlavicky kvuli cerne barve pozadi
+		right_forecast_frame = Frame(parent, bg="black")
+		right_forecast_frame.place(height=200, width=screen_width/3, x=screen_width/3*2, y=0)
+		right_forecast_frame.update()
+
+		#Vytvori zakladni frame pro levou cast hlavicky kvuli cerne barve pozadi
+		left_forecast_frame = Frame(parent, bg="black")
+		left_forecast_frame.place(height=200, width=screen_width/3, x=0, y=0)
+		left_forecast_frame.update()
+
+		#Pockej na pripojeni k internetu
+		center_time_frame.update()
+		await_connection()
+
+		#Zobraz carku
+		colon_frame = Frame(time_frame, width=20, height=133, bg="black")
+		colon_label = Label(colon_frame, textvariable=colon, bg="black", fg="white", font=("Roboto thin", 72))
+		colon_frame.grid(column=1, row=0, sticky=W)
+		colon_label.place(x=0, y=0)
 
 		#Aktualizace hodin a data
 		time_update()
@@ -113,11 +135,7 @@ def show_center_datetime(parent):
 
 # Zobrazi pravou cast hlavicky, rozdeli tuto cast na ctyri mensi casti, ktere obsahuji jednotlive hodnoty
 def show_right_forecast(parent):
-		#Vytvori zakladni frame pro pravou cast hlavicky
-		global screen_width, temp_val, city_val, status_val, icon_val, status_label, status_frame
-		right_forecast_frame = Frame(parent, bg="black")
-		right_forecast_frame.place(height=200, width=screen_width/3, x=screen_width/3*2, y=0)
-		right_forecast_frame.update()
+		global screen_width, temp_val, city_val, status_val, icon_val, status_label, status_frame, right_forecast_frame
 
 		#Frame a label pro zobrazeni teploty, na sirku zabira 1/2 prave casti, na vysku zabira 3/4 prave casti
 		temp_frame = Frame(right_forecast_frame, bg="black")
@@ -145,11 +163,7 @@ def show_right_forecast(parent):
 
 #Zobrazi levou cast hlavicky, ktera obsahuje aktualni teplotu a vlhkost merenou senzorem DHT11, ktery se nachazi pod RPi (viz Schema zapojeni)
 def show_left_actual_temp(parent):
-		#Vytvori zakladni frame pro levou cast hlavicky
-		global screen_width, act_temp_val, act_hum_val
-		left_forecast_frame = Frame(parent, bg="black")
-		left_forecast_frame.place(height=200, width=screen_width/3, x=0, y=0)
-		left_forecast_frame.update()
+		global screen_width, act_temp_val, act_hum_val, left_forecast_frame
 		
 		#Frame a label pro zobrazeni teploty, na sirku zabira celou levou cast, ale obsah se centruje doprostred, na vysku zabira 3/4 leve casti
 		left_temp_frame = Frame(left_forecast_frame, bg="black")
@@ -308,6 +322,21 @@ def load_icons():
 		json_icons = json.loads(file.read())
 		file.close()
 
+def await_connection():
+		global date_val
+		date_val.set("Čekám na připojení")
+		date_label.update()
+
+		i = 1
+
+		while True:
+				print (i)
+				try:
+						response = urllib.request.urlopen('http://www.google.com',timeout=1)
+						i = i + 1
+						return
+				except:
+						pass
 
 #Start programu, pomocí funkce locale nastavi ceskou lokalizaci
 set_fullscreen()
